@@ -1,4 +1,5 @@
 from asgiref.sync import sync_to_async
+from django.db import transaction
 from telegram import Update
 from telegram.ext import ContextTypes, CommandHandler, CallbackQueryHandler, MessageHandler, filters
 
@@ -53,7 +54,8 @@ async def hello(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 
 async def change_language(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    context.user_data['user'] = {'language': context.match.group(1)}
+    context.user_data['tg_user'].language = context.match.group(1)
+    print(context.match.group(1))
     activate(context.match.group(1))
     await update.callback_query.answer(_('Til o`zgartirildi'))
     await update.effective_message.delete()
@@ -71,7 +73,7 @@ async def add_fullname(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.effective_message.reply_text(
             'Telefon raqamingizni +998901234567 shaklida yuboring yoki pastdagi tugmani bosing',
             reply_markup=await get_contact())
-        context.user_data['user'].update({'fullname': msg})
+        context.user_data['tg_user'].fullname = msg
         context.user_data[STATE] = STATE_ADD_PHONE
     elif state == STATE_ADD_PHONE:
         contact = ''
@@ -88,7 +90,7 @@ async def add_fullname(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 return
             except TelegramUser.DoesNotExist:
                 await update.effective_message.reply_text(_('Viloyat tanlang'), reply_markup=await region_button())
-                context.user_data['user'].update({'phone': PhoneValidator.clean(contact)})
+                context.user_data['tg_user'].phone = PhoneValidator.clean(contact)
                 context.user_data[STATE] = STATE_ADD_COUNTRY
         else:
             await update.effective_message.reply_text(_('Raqam noto`g`ri iltimos boshqa raqam kiriting'))
@@ -98,23 +100,30 @@ async def add_fullname(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def set_country(update: Update, context: ContextTypes.DEFAULT_TYPE):
     state = context.user_data.get(STATE, '')
     await update.effective_message.delete()
-    user = context.user_data.get('user', {})
+    user = context.user_data.get('tg_user', {})
+
+    # category = [await CategoryModel.objects.aget(id=job) for job in user['job']]
     query = update.callback_query
     if state == STATE_ADD_COUNTRY:
-        cid = int(query.data)
-        context.user_data['user'].update({'cid': cid})
+        region = await RegionModel.objects.aget(id=int(query.data))
+        context.user_data['tg_user'].region = region
         context.user_data[STATE] = STATE_ADD_ROLE
         await update.effective_message.reply_text(_('Foydalanuvchi turini tanlang'),
                                                   reply_markup=await get_role())
     elif state == STATE_ADD_ROLE:
         cid = int(query.data)
-        context.user_data['user'].update({'role_id': cid})
-        context.user_data['user']['job'] = []
+        role = await RoleModel.objects.aget(id=cid)
+        context.user_data['tg_user'].role = role
+        # context.user_data['tg_user']['job'] = []
         if cid == 1:
             context.user_data[STATE] = STATE_ADD_JOB
             await update.effective_message.reply_text(_('Xizmat faoliyati: '),
                                                       reply_markup=await category_button(context=context))
         else:
+            # print(context.user_data['tg_user'])
+            for a in context.user_data['tg_user']:
+                print(a)
+            await context.user_data['tg_user'].asave()
             context.user_data[STATE] = ''
             await hello(update, context)
 
@@ -127,32 +136,25 @@ async def set_country(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return
 
         elif selected_job == 'no':
-            role = await RoleModel.objects.aget(id=user['role_id'])
-            country = await RegionModel.objects.aget(id=user['cid'])
-            category = [await CategoryModel.objects.aget(id=job)for job in user['job']]
-            print(category)
             obj, created = await TelegramUser.objects.aupdate_or_create(
                 telegram_user_id=update.effective_user.id,
                 defaults={
                     "fullname": user['fullname'],
                     "phone": user['phone'],
                     "language": user['language'],
-                    "role": role,
-                    'region': country,
+                    # "role": role,
+                    # 'region': country,
                 }
             )
-            obj.category.set(category)
+            # await obj.category.aset(category)
+
             context.user_data[STATE] = ''
             await hello(update, context)
         else:
-            context.user_data['user']['job'].append(int(selected_job))
+            context.user_data['tg_user']['job'].append(int(selected_job))
             await update.effective_message.reply_text(_('Yana ish turi qoshasizmi?'),
                                                       reply_markup=await yes_no_button())
             return
-
-
-async def save(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    pass
 
 
 handlers = [

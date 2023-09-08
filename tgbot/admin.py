@@ -19,4 +19,4 @@ class CategoryModelAdmin(admin.ModelAdmin):
 
 @admin.register(TelegramUser)
 class TelegramUserAdmin(admin.ModelAdmin):
-    list_display = ['telegram_user_id', 'fullname', 'phone','category']
+    list_display = ['telegram_user_id', 'fullname', 'phone']

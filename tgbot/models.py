@@ -33,6 +33,6 @@ class TelegramUser(models.Model):
     rating_count = models.IntegerField(default=0)
     rating_stars = models.IntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
-    category = models.ManyToManyField(CategoryModel),
+    category = models.ManyToManyField(CategoryModel)
     region = models.ForeignKey(RegionModel, on_delete=models.RESTRICT, default=1)
     role = models.ForeignKey(RoleModel, on_delete=models.RESTRICT, default=None, null=True)
