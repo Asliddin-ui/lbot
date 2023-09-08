@@ -6,7 +6,7 @@ from telegram.ext import ContextTypes, CommandHandler, CallbackQueryHandler, Mes
 from tgbot.customhandler import CustomHandler
 from tgbot.keyboards import lang_button, get_contact, region_button, get_role, category_button, yes_no_button
 from tgbot.models import TelegramUser, CategoryModel, RoleModel, RegionModel
-from django.utils.translation import gettext as _, activate
+from django.utils.translation import gettext as _, activate, get_language
 
 from tgbot.validators import PhoneValidator
 
@@ -54,9 +54,10 @@ async def hello(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 
 async def change_language(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    context.user_data['user'] = {'language': context.match.group(1)}
-    print(context.match.group(1))
-    activate(context.match.group(1))
+    user: TelegramUser = context.user_data['tg_user']
+    user.language = context.match.group(1)
+    await user.asave()
+    activate(user.language)
     await update.callback_query.answer(_('Til o`zgartirildi'))
     await update.effective_message.delete()
     await update.effective_message.reply_text('Ismingizni kiriting')
@@ -66,6 +67,7 @@ async def change_language(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def add_fullname(update: Update, context: ContextTypes.DEFAULT_TYPE):
     msg = update.message.text
     state = context.user_data.get(STATE, '')
+    print(get_language())
     if state == STATE_ADD_FULLNAME:
         if msg.startswith('/'):
             await update.effective_message.reply_text('Iltimos ismni to`gri kiriting')
@@ -73,7 +75,7 @@ async def add_fullname(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.effective_message.reply_text(
             'Telefon raqamingizni +998901234567 shaklida yuboring yoki pastdagi tugmani bosing',
             reply_markup=await get_contact())
-        context.user_data['user'].update({'fullname': msg})
+        context.user_data['user'] = {'fullname': msg}
         context.user_data[STATE] = STATE_ADD_PHONE
     elif state == STATE_ADD_PHONE:
         contact = ''
@@ -100,8 +102,7 @@ async def add_fullname(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def set_country(update: Update, context: ContextTypes.DEFAULT_TYPE):
     state = context.user_data.get(STATE, '')
     await update.effective_message.delete()
-    user = context.user_data.get('user', {})
-
+    print(get_language())
     # category = [await CategoryModel.objects.aget(id=job) for job in user['job']]
     query = update.callback_query
     if state == STATE_ADD_COUNTRY:

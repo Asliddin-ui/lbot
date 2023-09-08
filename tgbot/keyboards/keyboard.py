@@ -12,7 +12,7 @@ async def lang_button():
         buttons.append(InlineKeyboardButton(
             f'{lang[1]}', callback_data=f'{lang[0]}'
         ))
-
+        print(lang[0])
     return InlineKeyboardMarkup([buttons[i:i + 2] for i in range(0, len(buttons), 2)])
 
 
