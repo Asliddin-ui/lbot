@@ -43,7 +43,7 @@ async def get_role():
 
 async def category_button(context: ContextTypes.DEFAULT_TYPE):
     button = []
-    selected_jobs = context.user_data['user']['job']
+    selected_jobs = context.user_data['category']
     async for cat in CategoryModel.objects.order_by('-id').exclude(id__in=selected_jobs).all():
         button.append(
             InlineKeyboardButton(cat.name, callback_data=cat.id)
