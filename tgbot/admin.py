@@ -20,3 +20,8 @@ class CategoryModelAdmin(admin.ModelAdmin):
 @admin.register(TelegramUser)
 class TelegramUserAdmin(admin.ModelAdmin):
     list_display = ['telegram_user_id', 'fullname', 'phone']
+
+
+@admin.register(MenuModel)
+class MenuModelAdmin(admin.ModelAdmin):
+    list_display = ['id', 'name']

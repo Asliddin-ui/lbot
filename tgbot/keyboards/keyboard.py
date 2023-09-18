@@ -3,7 +3,7 @@ from telegram import KeyboardButton, InlineKeyboardButton, InlineKeyboardMarkup,
 from django.utils.translation import gettext as _
 from telegram.ext import ContextTypes
 
-from tgbot.models import CategoryModel, RegionModel, RoleModel
+from tgbot.models import CategoryModel, RegionModel, RoleModel, MenuModel
 
 
 async def lang_button():
@@ -54,3 +54,23 @@ async def category_button(context: ContextTypes.DEFAULT_TYPE):
 async def yes_no_button():
     return InlineKeyboardMarkup([[InlineKeyboardButton('Yes', callback_data='yes'),
                                   InlineKeyboardButton('No', callback_data='no')]])
+
+
+async def get_menu():
+    button = []
+
+    async for menu in MenuModel.objects.order_by('-id').all():
+        if menu.parent_id is None:
+            button.append(
+                KeyboardButton(menu.name)
+            )
+    return ReplyKeyboardMarkup(([button[i:i + 2] for i in range(0, len(button), 2)]), resize_keyboard=True)
+
+
+async def get_menus(msg):
+    button = []
+    async for menu in MenuModel.objects.filter(name=msg).all():
+        button.append(
+            InlineKeyboardButton(menu.name, callback_data=f"menu_{menu.id}")
+        )
+    return InlineKeyboardMarkup([button[i:i + 2] for i in range(0, len(button), 2)])

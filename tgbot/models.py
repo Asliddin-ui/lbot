@@ -36,3 +36,14 @@ class TelegramUser(models.Model):
     category = models.ManyToManyField(CategoryModel)
     region = models.ForeignKey(RegionModel, on_delete=models.RESTRICT, default=1)
     role = models.ForeignKey(RoleModel, on_delete=models.RESTRICT, default=None, null=True)
+
+
+@i18n
+class MenuModel(models.Model):
+    parent = models.ForeignKey('MenuModel', on_delete=models.RESTRICT, default=None, null=True, blank=True)
+    name_uz = models.CharField(max_length=255)
+    name_ru = models.CharField(max_length=255)
+    name_en = models.CharField(max_length=255)
+
+    def __str__(self):
+        return self.name
